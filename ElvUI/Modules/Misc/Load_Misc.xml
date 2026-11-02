@@ -10,4 +10,5 @@
 	<Script file="TotemBar.lua"/>
 	<Script file="RaidUtility.lua"/>
 	<Script file="AFK.lua"/>
+	<Script file="Paragon.lua"/>
 </Ui>

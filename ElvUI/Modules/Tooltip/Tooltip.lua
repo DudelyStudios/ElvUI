@@ -1,6 +1,52 @@
 local E, L, V, P, G = unpack(select(2, ...)) --Import: Engine, Locales, PrivateDB, ProfileDB, GlobalDB
 local TT = E:GetModule("Tooltip")
 
+-- The client OnTooltipSetItem script references globals that were never shipped.
+-- Replace it here as well so a /reload picks up the fix without a full restart.
+if type(GetStrStaTex) ~= "function" then
+	function GetStrStaTex()
+		return ""
+	end
+end
+
+if type(SUPER_TABLE_ITEMS_CORRUPTED) ~= "table" then
+	SUPER_TABLE_ITEMS_CORRUPTED = {}
+end
+
+local function SafeOnTooltipSetItem(self)
+	local compare = false
+	if IsModifiedClick and IsModifiedClick("COMPAREITEMS") then
+		compare = true
+	elseif GetCVarBool and GetCVarBool("alwaysCompareItems") then
+		compare = true
+	end
+
+	if compare and GameTooltip_ShowCompareItem then
+		GameTooltip_ShowCompareItem(self)
+	else
+		if ShoppingTooltip1 then ShoppingTooltip1:Hide() end
+		if ShoppingTooltip2 then ShoppingTooltip2:Hide() end
+		if ShoppingTooltip3 then ShoppingTooltip3:Hide() end
+	end
+end
+
+do
+	local tooltipNames = {
+		"GameTooltip",
+		"ItemRefTooltip",
+		"ShoppingTooltip1",
+		"ShoppingTooltip2",
+		"ShoppingTooltip3",
+		"WorldMapTooltip",
+	}
+	for i = 1, #tooltipNames do
+		local frame = _G[tooltipNames[i]]
+		if frame and frame.GetScript and frame:GetScript("OnTooltipSetItem") then
+			frame:SetScript("OnTooltipSetItem", SafeOnTooltipSetItem)
+		end
+	end
+end
+
 --Lua functions
 local _G = _G
 local unpack, tonumber, select = unpack, tonumber, select
@@ -451,15 +497,34 @@ function TT:GameTooltip_OnTooltipSetUnit(tt)
 		end
 	end
 
-	if color then
-		tt.StatusBar:SetStatusBarColor(color.r, color.g, color.b)
-	else
-		tt.StatusBar:SetStatusBarColor(0.6, 0.6, 0.6)
+	if isPlayerUnit then
+		local paragonLevel
+		if UnitIsUnit(unit, "player") and ParagonCharacterLevel and ParagonCharacterLevel.Text then
+			paragonLevel = ParagonCharacterLevel.Text:GetText()
+		elseif UnitIsUnit(unit, "target") and ParagonTargetLevel and ParagonTargetLevel.Text then
+			paragonLevel = ParagonTargetLevel.Text:GetText()
+		end
+
+		paragonLevel = tonumber(paragonLevel)
+		if paragonLevel and paragonLevel > 0 then
+			tt:AddLine(format("|cffcf5fe0%s|r %d", "Paragon", paragonLevel))
+		end
 	end
 
-	local textWidth = tt.StatusBar.text:GetStringWidth()
-	if textWidth then
-		tt:SetMinimumWidth(textWidth)
+	if tt.StatusBar then
+		if color then
+			tt.StatusBar:SetStatusBarColor(color.r, color.g, color.b)
+		else
+			tt.StatusBar:SetStatusBarColor(0.6, 0.6, 0.6)
+		end
+
+		-- 3.3.5a GameTooltip has no SetMinimumWidth. Calling it throws on every unit tooltip.
+		if tt.StatusBar.text and tt.SetMinimumWidth then
+			local textWidth = tt.StatusBar.text:GetStringWidth()
+			if textWidth then
+				tt:SetMinimumWidth(textWidth)
+			end
+		end
 	end
 end
 
@@ -539,6 +604,7 @@ function TT:GameTooltip_OnTooltipSetItem(tt)
 end
 
 function TT:GameTooltip_ShowStatusBar(tt)
+	if not tt or not tt.shownStatusBars or not tt.GetName then return end
 	local sb = _G[tt:GetName().."StatusBar"..tt.shownStatusBars]
 	if not sb or sb.backdrop then return end
 
@@ -625,13 +691,18 @@ function TT:SetTooltipFonts()
 	GameTooltipHeaderText:FontTemplate(font, headerSize, fontOutline)
 	GameTooltipText:FontTemplate(font, textSize, fontOutline)
 	GameTooltipTextSmall:FontTemplate(font, smallTextSize, fontOutline)
-	if GameTooltip.hasMoney then
+	if GameTooltip.hasMoney and GameTooltip.numMoneyFrames then
 		for i = 1, GameTooltip.numMoneyFrames do
-			_G["GameTooltipMoneyFrame"..i.."PrefixText"]:FontTemplate(font, textSize, fontOutline)
-			_G["GameTooltipMoneyFrame"..i.."SuffixText"]:FontTemplate(font, textSize, fontOutline)
-			_G["GameTooltipMoneyFrame"..i.."GoldButtonText"]:FontTemplate(font, textSize, fontOutline)
-			_G["GameTooltipMoneyFrame"..i.."SilverButtonText"]:FontTemplate(font, textSize, fontOutline)
-			_G["GameTooltipMoneyFrame"..i.."CopperButtonText"]:FontTemplate(font, textSize, fontOutline)
+			local prefix = _G["GameTooltipMoneyFrame"..i.."PrefixText"]
+			local suffix = _G["GameTooltipMoneyFrame"..i.."SuffixText"]
+			local gold = _G["GameTooltipMoneyFrame"..i.."GoldButtonText"]
+			local silver = _G["GameTooltipMoneyFrame"..i.."SilverButtonText"]
+			local copper = _G["GameTooltipMoneyFrame"..i.."CopperButtonText"]
+			if prefix then prefix:FontTemplate(font, textSize, fontOutline) end
+			if suffix then suffix:FontTemplate(font, textSize, fontOutline) end
+			if gold then gold:FontTemplate(font, textSize, fontOutline) end
+			if silver then silver:FontTemplate(font, textSize, fontOutline) end
+			if copper then copper:FontTemplate(font, textSize, fontOutline) end
 		end
 	end
 
@@ -645,8 +716,10 @@ function TT:SetTooltipFonts()
 	--Since they appear at the top of the tooltip, we set it to use the header font size.
 	for i = 1, 2 do
 		for j = 1, 4 do
-			_G["ShoppingTooltip"..i.."TextLeft"..j]:FontTemplate(font, headerSize, fontOutline)
-			_G["ShoppingTooltip"..i.."TextRight"..j]:FontTemplate(font, headerSize, fontOutline)
+			local left = _G["ShoppingTooltip"..i.."TextLeft"..j]
+			local right = _G["ShoppingTooltip"..i.."TextRight"..j]
+			if left then left:FontTemplate(font, headerSize, fontOutline) end
+			if right then right:FontTemplate(font, headerSize, fontOutline) end
 		end
 	end
 end

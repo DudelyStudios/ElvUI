@@ -11,24 +11,27 @@ S:AddCallback("Skin_Tooltip", function()
 	S:HandleCloseButton(ItemRefCloseButton, ItemRefTooltip)
 
 	local tooltips = {
-		GameTooltip,
-		ItemRefTooltip,
-		ItemRefShoppingTooltip1,
-		ItemRefShoppingTooltip2,
-		ItemRefShoppingTooltip3,
-		AutoCompleteBox,
-		FriendsTooltip,
-		ConsolidatedBuffsTooltip,
-		ShoppingTooltip1,
-		ShoppingTooltip2,
-		ShoppingTooltip3,
-		WorldMapTooltip,
-		WorldMapCompareTooltip1,
-		WorldMapCompareTooltip2,
-		WorldMapCompareTooltip3
+		"GameTooltip",
+		"ItemRefTooltip",
+		"ItemRefShoppingTooltip1",
+		"ItemRefShoppingTooltip2",
+		"ItemRefShoppingTooltip3",
+		"AutoCompleteBox",
+		"FriendsTooltip",
+		"ConsolidatedBuffsTooltip",
+		"ShoppingTooltip1",
+		"ShoppingTooltip2",
+		"ShoppingTooltip3",
+		"WorldMapTooltip",
+		"WorldMapCompareTooltip1",
+		"WorldMapCompareTooltip2",
+		"WorldMapCompareTooltip3"
 	}
-	for _, tt in ipairs(tooltips) do
-		TT:SecureHookScript(tt, "OnShow", "SetStyle")
+	for i = 1, #tooltips do
+		local tt = _G[tooltips[i]]
+		if tt then
+			TT:SecureHookScript(tt, "OnShow", "SetStyle")
+		end
 	end
 
 	GameTooltipStatusBar:SetStatusBarTexture(E.media.normTex)

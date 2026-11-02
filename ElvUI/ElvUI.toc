@@ -1,8 +1,8 @@
 ## Interface: 30300
 ## Author: Elv, Bunny
-## Version: 6.09
+## Version: 6.09-infinity
 ## Title: |cff1784d1E|r|cffe5e3e3lvUI|r
-## Notes: User Interface replacement AddOn for World of Warcraft.
+## Notes: User Interface replacement AddOn for World of Warcraft. InfinityCraft fork of ElvUI 6.09.
 ## SavedVariables: ElvDB, ElvPrivateDB
 ## SavedVariablesPerCharacter: ElvCharacterDB
 ## OptionalDeps: Blizzard_DebugTools, SharedMedia, Tukui, ButtonFacade

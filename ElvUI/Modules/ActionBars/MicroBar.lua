@@ -12,6 +12,7 @@ local RegisterStateDriver = RegisterStateDriver
 
 local MICRO_BUTTONS = {
 	"CharacterMicroButton",
+	"ParagonMicroButton",
 	"SpellbookMicroButton",
 	"TalentMicroButton",
 	"AchievementMicroButton",
@@ -49,23 +50,30 @@ function AB:HandleMicroButton(button)
 	local disabled = button:GetDisabledTexture()
 
 	local f = CreateFrame("Frame", nil, button)
-	f:SetFrameLevel(button:GetFrameLevel() - 1)
+	f:SetFrameLevel(math.max(0, button:GetFrameLevel() - 1))
 	f:SetTemplate("Default", true)
 	f:SetOutside(button)
 	button.backdrop = f
 
 	button:SetParent(ElvUI_MicroBar)
-	button:GetHighlightTexture():Kill()
+	local highlight = button:GetHighlightTexture()
+	if highlight then
+		highlight:Kill()
+	end
 	button:HookScript("OnEnter", onEnter)
 	button:HookScript("OnLeave", onLeave)
 	button:SetHitRectInsets(0, 0, 0, 0)
 	button:Show()
 
-	pushed:SetTexCoord(0.17, 0.87, 0.5, 0.908)
-	pushed:SetInside(f)
+	if pushed then
+		pushed:SetTexCoord(0.17, 0.87, 0.5, 0.908)
+		pushed:SetInside(f)
+	end
 
-	normal:SetTexCoord(0.17, 0.87, 0.5, 0.908)
-	normal:SetInside(f)
+	if normal then
+		normal:SetTexCoord(0.17, 0.87, 0.5, 0.908)
+		normal:SetInside(f)
+	end
 
 	if disabled then
 		disabled:SetTexCoord(0.17, 0.87, 0.5, 0.908)
@@ -77,7 +85,10 @@ function AB:UpdateMicroButtonsParent()
 	if CharacterMicroButton:GetParent() == ElvUI_MicroBar then return end
 
 	for i = 1, #MICRO_BUTTONS do
-		_G[MICRO_BUTTONS[i]]:SetParent(ElvUI_MicroBar)
+		local button = _G[MICRO_BUTTONS[i]]
+		if button then
+			button:SetParent(ElvUI_MicroBar)
+		end
 	end
 
 	AB:UpdateMicroPositionDimensions()
@@ -108,22 +119,24 @@ function AB:UpdateMicroPositionDimensions()
 
 	for i = 1, #MICRO_BUTTONS do
 		local button = _G[MICRO_BUTTONS[i]]
-		local lastColumnButton = i - self.db.microbar.buttonsPerRow
-		lastColumnButton = _G[MICRO_BUTTONS[lastColumnButton]]
+		if button then
+			local lastColumnButton = i - self.db.microbar.buttonsPerRow
+			lastColumnButton = _G[MICRO_BUTTONS[lastColumnButton]]
 
-		button:Size(self.db.microbar.buttonSize, self.db.microbar.buttonSize * 1.4)
-		button:ClearAllPoints()
+			button:Size(self.db.microbar.buttonSize, self.db.microbar.buttonSize * 1.4)
+			button:ClearAllPoints()
 
-		if prevButton == ElvUI_MicroBar then
-			button:Point("TOPLEFT", prevButton, "TOPLEFT", offset, -offset)
-		elseif (i - 1) % self.db.microbar.buttonsPerRow == 0 then
-			button:Point("TOP", lastColumnButton, "BOTTOM", 0, -spacing)
-			numRows = numRows + 1
-		else
-			button:Point("LEFT", prevButton, "RIGHT", spacing, 0)
+			if prevButton == ElvUI_MicroBar then
+				button:Point("TOPLEFT", prevButton, "TOPLEFT", offset, -offset)
+			elseif (i - 1) % self.db.microbar.buttonsPerRow == 0 then
+				button:Point("TOP", lastColumnButton, "BOTTOM", 0, -spacing)
+				numRows = numRows + 1
+			else
+				button:Point("LEFT", prevButton, "RIGHT", spacing, 0)
+			end
+
+			prevButton = button
 		end
-
-		prevButton = button
 	end
 
 	if AB.db.microbar.mouseover and not ElvUI_MicroBar:IsMouseOver() then
@@ -160,7 +173,10 @@ function AB:SetupMicroBar()
 	microBar.visibility:SetScript("OnHide", function() microBar:Hide() end)
 
 	for i = 1, #MICRO_BUTTONS do
-		self:HandleMicroButton(_G[MICRO_BUTTONS[i]])
+		local button = _G[MICRO_BUTTONS[i]]
+		if button then
+			self:HandleMicroButton(button)
+		end
 	end
 
 	MicroButtonPortrait:SetAllPoints()
